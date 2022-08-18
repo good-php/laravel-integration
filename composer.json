@@ -10,7 +10,7 @@
 	],
 	"require": {
 		"php": ">=8.1",
-		"good-php/serialization": "dev-alpha"
+		"good-php/serialization": "dev-customization-for-class-properties"
 	},
 	"require-dev": {
 		"pestphp/pest": "^1.0",
