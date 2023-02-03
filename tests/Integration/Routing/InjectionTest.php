@@ -14,6 +14,7 @@ class InjectionTest extends TestCase
 
 		Route::any('first', [StubController::class, 'first']);
 		Route::any('second', [StubController::class, 'second']);
+		Route::any('third', [StubController::class, 'third']);
 	}
 
 	/**
@@ -44,6 +45,17 @@ class InjectionTest extends TestCase
 			'first',
 			[
 				'first_key' => null,
+				'secondKey' => '2020-01-01',
+			],
+			[
+				'first'  => null,
+				'second' => '2020-01-01',
+			],
+		];
+
+		yield [
+			'first',
+			[
 				'secondKey' => '2020-01-01',
 			],
 			[
@@ -89,6 +101,29 @@ class InjectionTest extends TestCase
 				],
 			],
 		];
+
+		yield [
+			'second',
+			[
+				[
+				],
+			],
+			[
+				[
+					'first'  => null,
+					'second' => null,
+				],
+			],
+		];
+
+		yield [
+			'third',
+			[],
+			[
+				'first_key' => 123,
+				'secondKey' => '2022-01-01T00:00:00.000+00:00',
+			],
+		];
 	}
 
 	/**
@@ -105,19 +140,8 @@ class InjectionTest extends TestCase
 	{
 		yield [
 			'first',
-			[
-				'secondKey' => '2020-01-01',
-			],
-			[
-				'first_key' => 'Missing value',
-			],
-		];
-
-		yield [
-			'first',
 			[],
 			[
-				'first_key' => 'Missing value',
 				'secondKey' => 'Missing value',
 			],
 		];
@@ -139,18 +163,6 @@ class InjectionTest extends TestCase
 			],
 			[
 				'secondKey' => 'Failed to parse time string (not a date) at position 0 (n): The timezone could not be found in the database',
-			],
-		];
-
-		yield [
-			'second',
-			[
-				[
-				],
-			],
-			[
-				'0.first_key' => 'Missing value',
-				'0.secondKey' => 'Missing value',
 			],
 		];
 

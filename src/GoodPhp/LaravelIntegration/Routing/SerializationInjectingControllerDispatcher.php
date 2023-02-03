@@ -13,8 +13,10 @@ use GoodPhp\Serialization\TypeAdapter\Primitive\PrimitiveTypeAdapter;
 use Illuminate\Container\Container;
 use Illuminate\Http\Request;
 use Illuminate\Routing\ControllerDispatcher;
+use Illuminate\Routing\Route;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
+use ReflectionMethod;
 use ReflectionParameter;
 
 class SerializationInjectingControllerDispatcher extends ControllerDispatcher
@@ -28,12 +30,31 @@ class SerializationInjectingControllerDispatcher extends ControllerDispatcher
 	}
 
 	/**
-	 * Attempt to transform the given parameter into a class instance.
-	 *
-	 * @param array  $parameters
-	 * @param object $skippableValue
-	 *
-	 * @return mixed
+	 * @inheritDoc
+	 */
+	public function dispatch(Route $route, $controller, $method)
+	{
+		$result = parent::dispatch($route, $controller, $method);
+
+		$reflection = new ReflectionMethod($controller, $method);
+
+		if ($reflection->getAttributes(Output::class)) {
+			$type = $this->reflector
+				->forType($reflection->getDeclaringClass()->getName())
+				->methods()
+				->first(fn (MethodReflection $method) => $method->name() === $reflection->getName())
+				->returnType();
+
+			return $this->serializer
+				->adapter(PrimitiveTypeAdapter::class, $type)
+				->serialize($result);
+		}
+
+		return $result;
+	}
+
+	/**
+	 * @inheritDoc
 	 */
 	protected function transformDependency(ReflectionParameter $parameter, $parameters, $skippableValue)
 	{
@@ -46,10 +67,12 @@ class SerializationInjectingControllerDispatcher extends ControllerDispatcher
 				->first(fn (FunctionParameterReflection $goodParameter) => $parameter->name === $goodParameter->name())
 				->type();
 
+			$data = $this->container->make(Request::class)->input();
+
 			try {
-				return $this->serializer->adapter(PrimitiveTypeAdapter::class, $type)->deserialize(
-					$this->container->make(Request::class)->input(),
-				);
+				return $this->serializer
+					->adapter(PrimitiveTypeAdapter::class, $type)
+					->deserialize($data);
 			} catch (PropertyMappingException|CollectionItemMappingException|MultipleMappingException $e) {
 				throw ValidationException::withMessages(Arr::dot($this->extractErrors($e)));
 			}
